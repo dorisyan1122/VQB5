@@ -1,0 +1,135 @@
+---
+title: "VQb5"
+author: "Doris Yan"
+format: html
+editor: visual
+---
+
+## Import data and packages
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+library(plotly)
+library(readxl)
+vqb5 <- read_excel("VQB5-Quality-Rating-Data-for-Website---2023-2024.xlsx")
+```
+
+## Data cleaning
+
+```{r}
+vqb5_cleaned <- vqb5 |>
+  # keep variables relevant with quality ratings and results
+  select(`Ready Region Name`, `Site Type`, `Site Name`, `Other Care Options`,  `Quality Rating`, `Interaction Points`, `Curriculum Points`, `Total Points`, `Operating Period`, `Ready Region Name`
+         ) |>
+  # transform all variable names to lower case and replace spaces with underscores for readability and reproducibility
+  rename_with(~ str_replace_all
+              (tolower(.), " ", "_")
+              )
+```
+
+## 1. Summarize the number of schools in each quality result category
+
+```{r}
+quality_counts <- vqb5_cleaned |>
+  group_by(quality_rating)|>
+  summarise(site_count = n()) 
+```
+
+## 2. Quality ratings broken down by site type
+
+```{r}
+# Step 1: Summarize quality counts by site type
+quality_by_site_type <- vqb5_cleaned |>
+  group_by(site_type, quality_rating) |>
+  summarise(site_count = n(), .groups = "drop") |>
+  mutate(quality_rating = factor(
+    quality_rating,
+    levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
+  ))
+
+# Step 2: Create ggplot with custom hover text
+p1 <- quality_by_site_type |>
+  ggplot(aes(
+    x = quality_rating,
+    y = site_count,
+    fill = quality_rating,
+    text = site_count
+  )) +
+  geom_col() +
+  facet_wrap(~ site_type) +
+  scale_fill_manual(values = c(
+    "Exceeds Expectations" = "#1b9e77",
+    "Meets Expectations"   = "#7570b3",
+    "Needs Support"        = "#d95f02"
+  )) +
+  labs(
+    title = "Quality Ratings by Site Type",
+    x = NULL,
+    y = "Number of Sites",
+    fill = "Quality Rating"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+# Step 3: Convert to interactive plotly, showing only count on hover
+ggplotly(p1, tooltip = "text")
+
+
+  
+  
+```
+
+## 3. Quality ratings broken down by ready region name
+```{r}
+# Step 1: Summarize quality counts by site type
+quality_by_ready_region <- vqb5_cleaned |>
+  group_by(ready_region_name, quality_rating) |>
+  summarise(region_count = n(), .groups = "drop") |>
+  mutate(quality_rating = factor(
+    quality_rating,
+    levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
+  ))
+
+# Step 2: Create ggplot with custom hover text
+p2 <- quality_by_ready_region|>
+  ggplot(aes(
+    x = quality_rating,
+    y = region_count,
+    fill = quality_rating,
+    text = region_count
+  )) +
+  geom_col(position = position_dodge(preserve = "single")) +
+  geom_point(
+    aes(group = quality_rating, text = region_count),
+    position = position_dodge(width = 0.9),
+    alpha = 0,
+    size = 4
+  )+
+  facet_wrap(~ ready_region_name) +
+  scale_fill_manual(values = c(
+    "Exceeds Expectations" = "#1b9e77",
+    "Meets Expectations"   = "#7570b3",
+    "Needs Support"        = "#d95f02"
+  )) +
+  labs(
+    title = "Quality Ratings by Ready Region",
+    x = NULL,
+    y = "Number of Ready Regions",
+    fill = "Quality Rating"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+# Step 3: Convert to interactive plotly, showing only count on hover
+ggplotly(p2, tooltip = "text")
+```
