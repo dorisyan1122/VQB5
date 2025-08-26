@@ -15,6 +15,7 @@ library(ggplot2)
 library(here)
 library(plotly)
 library(readxl)
+library(htmlwidgets)
 vqb5 <- read_excel("VQB5-Quality-Rating-Data-for-Website---2023-2024.xlsx")
 ```
 
