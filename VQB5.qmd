@@ -1,5 +1,5 @@
 ---
-title: "VQb5"
+title: "Virginia Quality Birth to Five System (VQB5) Evaluation & Analysis"
 author: "Doris Yan"
 format: html
 editor: visual
@@ -7,7 +7,7 @@ editor: visual
 
 ## Import data and packages
 
-```{r}
+```{r, output=FALSE}
 library(tidyverse)
 library(ggplot2)
 library(here)
@@ -29,33 +29,44 @@ vqb5_cleaned <- vqb5 |>
               )
 ```
 
-## 1. Summarize the number of schools in each quality result category
+## 1. Summarize the number of sites in each quality result category
 
 ```{r}
 quality_counts <- vqb5_cleaned |>
-  group_by(quality_rating)|>
-  summarise(site_count = n()) 
+  group_by(quality_rating) |>
+  summarise(site_count = n()) |>
+  mutate(
+    percent = round(100 * site_count / sum(site_count), 2)
+  )
+
+quality_counts
 ```
 
-## 2. Quality ratings broken down by site type
+## 2. Summarize quality ratings by site type
 
 ```{r}
-# Step 1: Summarize quality counts by site type
+# summarize quality counts by site type
 quality_by_site_type <- vqb5_cleaned |>
   group_by(site_type, quality_rating) |>
   summarise(site_count = n(), .groups = "drop") |>
-  mutate(quality_rating = factor(
-    quality_rating,
-    levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
-  ))
+  group_by(site_type) |>
+  mutate(
+    percent = round(100 * site_count / sum(site_count), 2),
+    quality_rating = factor(
+      quality_rating,
+      levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
+    )
+  )
 
-# Step 2: Create ggplot with custom hover text
+quality_by_site_type
+
+# create a plot with custom hover text
 p1 <- quality_by_site_type |>
   ggplot(aes(
     x = quality_rating,
     y = site_count,
     fill = quality_rating,
-    text = site_count
+    text = paste0("Sites: ", site_count, "\nPercent: ", percent, "%")
   )) +
   geom_col() +
   facet_wrap(~ site_type) +
@@ -77,40 +88,37 @@ p1 <- quality_by_site_type |>
     axis.ticks.x = element_blank()
   )
 
-# Step 3: Convert to interactive plotly, showing only count on hover
-ggplotly(p1, tooltip = "text")
-
-
-  
-  
+# Convert to interactive plotly, showing site count on hover
+ggplotly(p1, tooltip = "text", width = 1000, height = 500)
 ```
 
-## 3. Quality ratings broken down by ready region name
+## 3. Summarize quality ratings by ready region
+
 ```{r}
-# Step 1: Summarize quality counts by site type
+# Summarize quality counts by ready region name
 quality_by_ready_region <- vqb5_cleaned |>
   group_by(ready_region_name, quality_rating) |>
   summarise(region_count = n(), .groups = "drop") |>
-  mutate(quality_rating = factor(
-    quality_rating,
-    levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
-  ))
+  group_by(ready_region_name) |>
+  mutate(
+    percent = round(100 * region_count / sum(region_count), 2),
+    quality_rating = factor(
+      quality_rating,
+      levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
+    )
+  )
 
-# Step 2: Create ggplot with custom hover text
-p2 <- quality_by_ready_region|>
+quality_by_ready_region 
+
+# Create plot with custom hover text
+p2 <- quality_by_ready_region |>
   ggplot(aes(
     x = quality_rating,
     y = region_count,
     fill = quality_rating,
-    text = region_count
+    text = paste0("Sites: ", region_count, "\nPercent: ", percent, "%")
   )) +
-  geom_col(position = position_dodge(preserve = "single")) +
-  geom_point(
-    aes(group = quality_rating, text = region_count),
-    position = position_dodge(width = 0.9),
-    alpha = 0,
-    size = 4
-  )+
+  geom_col() +
   facet_wrap(~ ready_region_name) +
   scale_fill_manual(values = c(
     "Exceeds Expectations" = "#1b9e77",
@@ -120,7 +128,7 @@ p2 <- quality_by_ready_region|>
   labs(
     title = "Quality Ratings by Ready Region",
     x = NULL,
-    y = "Number of Ready Regions",
+    y = "Number of Sites",
     fill = "Quality Rating"
   ) +
   theme_minimal() +
@@ -130,6 +138,5 @@ p2 <- quality_by_ready_region|>
     axis.ticks.x = element_blank()
   )
 
-# Step 3: Convert to interactive plotly, showing only count on hover
-ggplotly(p2, tooltip = "text")
+ggplotly(p2, tooltip = "text", width = 1000, height = 600)
 ```

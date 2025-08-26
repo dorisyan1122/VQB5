@@ -1,5 +1,5 @@
 ---
-title: "Virginia Quality Birth to Five System (VQB5) Quality Results"
+title: "Virginia Quality Birth to Five System (VQB5) Evaluation & Analysis"
 author: Doris Yan
 format: revealjs
 editor: visual
@@ -29,8 +29,11 @@ vqb5_cleaned <- vqb5 |>
 
 ```{r}
 quality_counts <- vqb5_cleaned |>
-  group_by(quality_rating)|>
-  summarise(site_count = n()) 
+  group_by(quality_rating) |>
+  summarise(site_count = n()) |>
+  mutate(
+    percent = round(100 * site_count / sum(site_count), 2)
+  )
 
 quality_counts
 ```
@@ -42,10 +45,14 @@ quality_counts
 quality_by_site_type <- vqb5_cleaned |>
   group_by(site_type, quality_rating) |>
   summarise(site_count = n(), .groups = "drop") |>
-  mutate(quality_rating = factor(
-    quality_rating,
-    levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
-  ))
+  group_by(site_type) |>
+  mutate(
+    percent = round(100 * site_count / sum(site_count), 2),
+    quality_rating = factor(
+      quality_rating,
+      levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
+    )
+  )
 
 # Create plot with custom hover text
 p1 <- quality_by_site_type |>
@@ -53,7 +60,7 @@ p1 <- quality_by_site_type |>
     x = quality_rating,
     y = site_count,
     fill = quality_rating,
-    text = site_count
+    text = paste0("Sites: ", site_count, "\nPercent: ", percent, "%")
   )) +
   geom_col() +
   facet_wrap(~ site_type) +
@@ -76,36 +83,34 @@ p1 <- quality_by_site_type |>
   )
 
 # Convert to interactive plotly, showing site count on hover
-ggplotly(p1, tooltip = "text", width = 1000, height = 600)
+ggplotly(p1, tooltip = "text", width = 1000, height = 500)
 ```
 
 ## Quality Ratings by Ready Region
 
 ```{r}
-# Step 1: Summarize quality counts by site type
+# Summarize quality counts by ready region name
 quality_by_ready_region <- vqb5_cleaned |>
   group_by(ready_region_name, quality_rating) |>
   summarise(region_count = n(), .groups = "drop") |>
-  mutate(quality_rating = factor(
-    quality_rating,
-    levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
-  ))
+  group_by(ready_region_name) |>
+  mutate(
+    percent = round(100 * region_count / sum(region_count), 2),
+    quality_rating = factor(
+      quality_rating,
+      levels = c("Exceeds Expectations", "Meets Expectations", "Needs Support")
+    )
+  )
 
-# Step 2: Create ggplot with custom hover text
-p2 <- quality_by_ready_region|>
+# Create plot with custom hover text
+p2 <- quality_by_ready_region |>
   ggplot(aes(
     x = quality_rating,
     y = region_count,
     fill = quality_rating,
-    text = region_count
+    text = paste0("Sites: ", region_count, "\nPercent: ", percent, "%")
   )) +
-  geom_col(position = position_dodge(preserve = "single")) +
-  geom_point(
-    aes(group = quality_rating, text = region_count),
-    position = position_dodge(width = 0.9),
-    alpha = 0,
-    size = 4
-  )+
+  geom_col() +
   facet_wrap(~ ready_region_name) +
   scale_fill_manual(values = c(
     "Exceeds Expectations" = "#1b9e77",
@@ -115,7 +120,7 @@ p2 <- quality_by_ready_region|>
   labs(
     title = "Quality Ratings by Ready Region",
     x = NULL,
-    y = "Number of Ready Regions",
+    y = "Number of Sites",
     fill = "Quality Rating"
   ) +
   theme_minimal() +
@@ -125,20 +130,22 @@ p2 <- quality_by_ready_region|>
     axis.ticks.x = element_blank()
   )
 
-# Step 3: Convert to interactive plotly, showing only count on hover
+# Convert to interactive plotly, showing site count on hover
 ggplotly(p2, tooltip = "text", width = 1000, height = 600)
 ```
 
 ## Takeaways
 
-::: incremental
--   Most sites “Meet Expectations”, indicating strong alignment with state standards.
+<div style="font-size:30px; line-height:1.6;">
 
--   **Few sites “Exceed Expectations”**, showing high performance is hard to achieve under VQB5.
+- **Most VQB5 sites “Meet Expectations” (~96%)**, indicating strong alignment with Virginia's early education quality standards.
 
--   **“Needs Support” ratings are rare** but more visible in **Family Day Homes** and **Public Schools**, pointing to targeted challenges.
+- **Public schools show the strongest quality performance overall**:  
+  - 0% of public school sites are rated “Needs Support”  
+  - Public schools have the highest share of sites rated “Exceeds Expectations” among all site types, at **3.74%**
 
--   **Centers have the highest volume** and largely meet expectations—likely due to more structured environments.
+- **Family Day Homes have the highest share of sites rated “Needs Support”**, at **5.17%**, compared to Centers (0.79%) and Public Schools (0%)
 
--   **Regional differences** suggest unequal access to quality improvement supports.
-:::
+- **Capital Area has the highest percentage of sites needing support (3.89%)** and the lowest percentage meeting expectations (**91.83%**) among all regions, despite having the **largest total site count**
+
+</div>
