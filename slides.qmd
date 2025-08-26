@@ -1,7 +1,9 @@
 ---
 title: "Virginia Quality Birth to Five System (VQB5) Evaluation & Analysis"
 author: Doris Yan
-format: revealjs
+format:
+  revealjs:
+    self-contained: true
 editor: visual
 ---
 
